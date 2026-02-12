@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { exportToPDF } from '../utils/pdfExport';
 import DIRTemplate from './documents/DIRTemplate';
 import PGRTemplate from './documents/PGRTemplate';
-// import PCMSOTemplate from './documents/PCMSOTemplate';
+import PCMSOTemplate from './documents/PCMSOTemplate';
 
 const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) => {
     console.log('[ClientDashboard] Received companyData:', companyData);
@@ -25,7 +25,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
 
     // Função de Geração de PDF
     const handleGeneratePDF = async (docType) => {
-        const pgrType = companyData.intake_data?.pgr_type || 'FULL';
+        const pgrType = companyData?.intake_data?.pgr_type || 'FULL';
 
         if (docType === 'pgr') {
             setGeneratingPDF(true);
@@ -52,20 +52,15 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
                 }, 2000); // 2s buffer for larger document
             }
         } else if (docType === 'pcmso') {
-            // TEMPORARY DEBUG: DISABLED PCMSO
-            alert('Funcionalidade em manutenção (Debug Mode).');
-            /*
             setGeneratingPDF(true);
             setTemplateType('PCMSO');
             setTimeout(() => {
                 const element = document.getElementById('pcmso-document-template');
                 if (element) exportToPDF('pcmso-document-template', `PCMSO-${companyData.cnpj}.pdf`);
-                // Removed: else alert('Erro ao renderizar template PCMSO.');
 
                 setGeneratingPDF(false);
                 setTemplateType(null);
             }, 2000);
-            */
         } else {
             if (onViewDocs) onViewDocs(docType);
         }
@@ -170,7 +165,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '10px' }}>
                                                     <button className="btn-secondary" onClick={() => handleGeneratePDF('pgr')} style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>
-                                                        📄 {companyData.intake_data?.pgr_type === 'SIMPLIFIED' ? 'Baixar DIR' : 'PGR (Rascunho)'}
+                                                        📄 {companyData?.intake_data?.pgr_type === 'SIMPLIFIED' ? 'Baixar DIR' : 'PGR (Rascunho)'}
                                                     </button>
                                                     <button className="btn-secondary" onClick={() => handleGeneratePDF('pcmso')} style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>🩺 PCMSO (Rascunho)</button>
                                                 </div>
@@ -180,7 +175,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', fontWeight: 'bold' }}>✅ A análise técnica foi concluída! Revise os documentos finais:</p>
                                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                                    <button className="btn-primary" onClick={() => handleGeneratePDF('pgr')}>Validar {companyData.intake_data?.pgr_type === 'SIMPLIFIED' ? 'DIR' : 'PGR'} Final</button>
+                                                    <button className="btn-primary" onClick={() => handleGeneratePDF('pgr')}>Validar {companyData?.intake_data?.pgr_type === 'SIMPLIFIED' ? 'DIR' : 'PGR'} Final</button>
                                                     <button className="btn-primary" onClick={() => handleGeneratePDF('pcmso')} style={{ background: 'var(--primary)' }}>Validar PCMSO Final</button>
                                                 </div>
                                             </div>
@@ -264,8 +259,8 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
             {generatingPDF && (
                 <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
                     {templateType === 'DIR' && <DIRTemplate companyData={companyData} />}
-                    {/* {templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />} */}
-                    {/* {templateType === 'PCMSO' && <PCMSOTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />} */}
+                    {templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
+                    {templateType === 'PCMSO' && <PCMSOTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
                 </div>
             )}
 

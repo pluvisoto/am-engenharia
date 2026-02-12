@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PCMSOTemplate = ({ companyData, data, date = new Date() }) => {
+const PCMSOTemplate = ({ companyData, data = {}, date = new Date() }) => {
     // Format date
     const formattedDate = date.toLocaleDateString('pt-BR', {
         day: 'numeric',
