@@ -17,13 +17,29 @@ const PCMSOTemplate = ({ companyData, data = {}, date = new Date() }) => {
             fontFamily: 'Arial, sans-serif',
             color: '#333',
             background: '#fff',
-            width: '210mm',
-            minHeight: '297mm',
+            width: '100%',
+            boxSizing: 'border-box',
             margin: '0 auto',
             position: 'relative',
             pageBreakAfter: 'always',
             fontSize: '11pt',
             lineHeight: '1.5'
+        },
+        coverPage: {
+            padding: '40px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#333',
+            background: '#fff',
+            width: '100%',
+            boxSizing: 'border-box',
+            minHeight: '290mm',
+            margin: '0 auto',
+            position: 'relative',
+            pageBreakAfter: 'always',
+            fontSize: '11pt',
+            lineHeight: '1.5',
+            display: 'flex',
+            flexDirection: 'column'
         },
         header: {
             borderBottom: '2px solid #047857', // Green for Health
@@ -112,7 +128,7 @@ const PCMSOTemplate = ({ companyData, data = {}, date = new Date() }) => {
     return (
         <div id="pcmso-document-template">
             {/* ==================== CAPA ==================== */}
-            <div style={{ ...styles.page, display: 'flex', flexDirection: 'column' }}>
+            <div style={styles.coverPage}>
                 <div style={{ textAlign: 'center', marginTop: '50px' }}>
                     <img src="https://placehold.co/150x80/png?text=LOGO" alt="Logo Empresa" style={{ marginBottom: '30px' }} />
                     <h2 style={{ fontSize: '16pt', textTransform: 'uppercase' }}>{companyData.name}</h2>
