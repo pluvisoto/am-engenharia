@@ -7,6 +7,10 @@ import PGRTemplate from './documents/PGRTemplate';
 const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) => {
     console.log('[ClientDashboard] Received companyData:', companyData);
 
+    if (!companyData || !companyData.name) {
+        return <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>Carregando dados da empresa...</div>;
+    }
+
     // Configurações de Estado para Geração de PDF
     const [generatingPDF, setGeneratingPDF] = useState(false);
     const [templateType, setTemplateType] = useState(null); // 'DIR' or 'PGR' or 'PCMSO'
@@ -260,7 +264,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
             {generatingPDF && (
                 <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
                     {templateType === 'DIR' && <DIRTemplate companyData={companyData} />}
-                    {templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
+                    {/* {templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />} */}
                     {/* {templateType === 'PCMSO' && <PCMSOTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />} */}
                 </div>
             )}
