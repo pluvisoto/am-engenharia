@@ -589,9 +589,10 @@ export const getCompanyProfessionals = async (companyId) => {
                 reference_hospital:reference_hospitals(*)
             `)
             .eq('company_id', companyId)
-            .single();
+            .eq('company_id', companyId)
+            .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        if (error) {
             return handleSupabaseError(error);
         }
 
