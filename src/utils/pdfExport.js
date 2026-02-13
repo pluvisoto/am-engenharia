@@ -16,11 +16,14 @@ export const exportToPDF = (elementId, filename = 'documento.pdf') => {
             scale: 1.5,
             useCORS: true,
             letterRendering: true,
-            windowWidth: 1024
+            windowWidth: 1024,
+            logging: true,
+            scrollY: 0,
+            scrollX: 0
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    html2pdf().set(opt).from(element).save();
+    return html2pdf().set(opt).from(element).save();
 };

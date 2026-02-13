@@ -37,35 +37,51 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
 
             if (pgrType === 'DIR') {
                 setTemplateType('DIR');
-                setTimeout(() => {
+                setTimeout(async () => {
                     const element = document.getElementById('dir-document-template');
-                    if (element) exportToPDF('dir-document-template', `DIR-${companyData.cnpj}.pdf`);
-                    else alert('Erro ao renderizar template DIR.');
+                    if (element) {
+                        await exportToPDF('dir-document-template', `DIR-${companyData.cnpj}.pdf`);
+                    } else {
+                        alert('Erro ao renderizar template DIR.');
+                    }
                     setGeneratingPDF(false);
                     setTemplateType(null);
-                }, 1500);
+                }, 2000);
             } else {
-                // FULL OR SIMPLIFIED PGR uses PGR Template (Simplified content can be handled inside template via props if needed)
                 setTemplateType('PGR');
-                setTimeout(() => {
+                // Timeout maior para PGR que pode ser muito longo (41 páginas)
+                setTimeout(async () => {
                     const element = document.getElementById('pgr-document-template');
-                    if (element) exportToPDF('pgr-document-template', `PGR-${companyData.cnpj}.pdf`);
-                    else alert('Erro ao renderizar template PGR.');
-
+                    if (element) {
+                        try {
+                            await exportToPDF('pgr-document-template', `PGR-${companyData.cnpj}.pdf`);
+                        } catch (err) {
+                            console.error('Erro na geração do PGR:', err);
+                        }
+                    } else {
+                        alert('Erro ao renderizar template PGR.');
+                    }
                     setGeneratingPDF(false);
                     setTemplateType(null);
-                }, 4000); // Increased to 4s for massive document
+                }, 8000);
             }
         } else if (docType === 'pcmso') {
             setGeneratingPDF(true);
             setTemplateType('PCMSO');
-            setTimeout(() => {
+            setTimeout(async () => {
                 const element = document.getElementById('pcmso-document-template');
-                if (element) exportToPDF('pcmso-document-template', `PCMSO-${companyData.cnpj}.pdf`);
-
+                if (element) {
+                    try {
+                        await exportToPDF('pcmso-document-template', `PCMSO-${companyData.cnpj}.pdf`);
+                    } catch (err) {
+                        console.error('Erro na geração do PCMSO:', err);
+                    }
+                } else {
+                    alert('Erro ao renderizar template PCMSO.');
+                }
                 setGeneratingPDF(false);
                 setTemplateType(null);
-            }, 3000); // 3s buffer for PCMSO
+            }, 5000);
         } else {
             if (onViewDocs) onViewDocs(docType);
         }
@@ -309,20 +325,76 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
 
             </div>
 
-            {/* TEMPLATES OCULTOS PARA GERAÇÃO DE PDF */}
-            <div style={{
-                position: 'fixed',
-                left: '-10000px',
-                top: 0,
-                zIndex: -1000,
-                opacity: 1,
-                pointerEvents: 'none',
-                background: 'white'
-            }}>
-                {generatingPDF && templateType === 'DIR' && <DIRTemplate companyData={companyData} />}
-                {generatingPDF && templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
-                {generatingPDF && templateType === 'PCMSO' && <PCMSOTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
-            </div>
+            {/* OVERLAY DE GERAÇÃO DE PDF (Garante renderização correta para o capture engine) */}
+            {generatingPDF && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    backdropFilter: 'blur(5px)'
+                }}>
+                    <div style={{
+                        background: 'white',
+                        padding: '2rem',
+                        borderRadius: '1rem',
+                        textAlign: 'center',
+                        color: 'var(--primary)',
+                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+                        marginBottom: '2rem'
+                    }}>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            border: '4px solid #f3f3f3',
+                            borderTop: '4px solid var(--accent)',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            margin: '0 auto 1.5rem auto'
+                        }}></div>
+                        <h3 style={{ margin: 0 }}>Gerando Documento Oficial</h3>
+                        <p style={{ margin: '0.5rem 0 0 0', opacity: 0.7, fontSize: '0.9rem' }}>
+                            Por favor, não feche esta aba.<br />
+                            Isso pode levar alguns segundos devido ao volume de dados.
+                        </p>
+                    </div>
+
+                    {/* O template é renderizado dentro da overlay, mas escondido por trás do conteúdo branco se necessário */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'white',
+                        zIndex: 9998,
+                        boxShadow: '0 0 100px rgba(0,0,0,0.5)'
+                    }}>
+                        {templateType === 'DIR' && <DIRTemplate companyData={companyData} />}
+                        {templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
+                        {templateType === 'PCMSO' && <PCMSOTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
+                    100% { transform: scale(1); }
+                }
+            `}</style>
 
             <style>{`
                 @keyframes pulse {

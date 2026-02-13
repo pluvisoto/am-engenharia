@@ -1072,7 +1072,6 @@ const styles = {
         backgroundColor: '#fff'
     },
     pageBody: {
-        flex: 1,
         zIndex: 2,
         position: 'relative'
     },
@@ -1086,7 +1085,7 @@ const styles = {
         pointerEvents: 'none'
     },
     watermarkLogo: {
-        fontSize: '400pt',
+        fontSize: '200pt',
         fontWeight: '900',
         color: '#000'
     },
