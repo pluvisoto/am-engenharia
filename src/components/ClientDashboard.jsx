@@ -210,9 +210,27 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ padding: '1rem', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #10b981' }}>
                                                     <p style={{ margin: '0 0 1rem 0', color: '#065f46', fontWeight: 'bold' }}>🎉 Todos os documentos estão prontos!</p>
-                                                    <button className="btn-primary" style={{ width: '100%' }} onClick={() => handleGeneratePDF('pgr')}>
-                                                        📥 Baixar Kit SST Completo
-                                                    </button>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                        <button
+                                                            className="btn-primary"
+                                                            style={{ width: '100%' }}
+                                                            onClick={() => handleGeneratePDF('pgr')}
+                                                        >
+                                                            📥 Baixar {detectedPgrType === 'DIR' ? 'DIR' : 'PGR'} Assinado
+                                                        </button>
+                                                        <button
+                                                            className="btn-primary"
+                                                            style={{
+                                                                width: '100%',
+                                                                backgroundColor: 'var(--primary)',
+                                                                borderColor: 'var(--primary)',
+                                                                boxShadow: '0 4px 15px -3px rgba(15, 23, 42, 0.3)'
+                                                            }}
+                                                            onClick={() => handleGeneratePDF('pcmso')}
+                                                        >
+                                                            📥 Baixar PCMSO Assinado (NR-07)
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -291,14 +309,20 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
 
             </div>
 
-            {/* HIDDEN TEMPLATES FOR PDF GENERATION */}
-            {generatingPDF && (
-                <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                    {templateType === 'DIR' && <DIRTemplate companyData={companyData} />}
-                    {templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
-                    {templateType === 'PCMSO' && <PCMSOTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
-                </div>
-            )}
+            {/* TEMPLATES OCULTOS PARA GERAÇÃO DE PDF */}
+            <div style={{
+                position: 'fixed',
+                left: '-10000px',
+                top: 0,
+                zIndex: -1000,
+                opacity: 1,
+                pointerEvents: 'none',
+                background: 'white'
+            }}>
+                {generatingPDF && templateType === 'DIR' && <DIRTemplate companyData={companyData} />}
+                {generatingPDF && templateType === 'PGR' && <PGRTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
+                {generatingPDF && templateType === 'PCMSO' && <PCMSOTemplate companyData={companyData} data={fullData || companyData?.auto_generated_data || {}} />}
+            </div>
 
             <style>{`
                 @keyframes pulse {

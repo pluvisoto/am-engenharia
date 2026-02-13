@@ -46,7 +46,8 @@ function App() {
                 roles: fullData.auto_generated_data.roles || [],
                 epis: fullData.auto_generated_data.epis || [],
                 medical_exams: fullData.auto_generated_data.medical_exams || [],
-                action_plan: fullData.auto_generated_data.action_plan || []
+                action_plan: fullData.auto_generated_data.action_plan || [],
+                risk_inventory: fullData.auto_generated_data.risk_inventory || []
               });
               setInventory(fullData.auto_generated_data.risk_inventory || []);
             } else {
@@ -134,6 +135,7 @@ function App() {
                       epis: fullData.auto_generated_data.epis || [],
                       medical_exams: fullData.auto_generated_data.medical_exams || [],
                       action_plan: fullData.auto_generated_data.action_plan || [],
+                      risk_inventory: fullData.auto_generated_data.risk_inventory || [],
                       ...profData
                     });
                     setInventory(fullData.auto_generated_data.risk_inventory || []);

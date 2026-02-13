@@ -271,6 +271,21 @@ const TeamManager = () => {
                         />
                     </label>
 
+                    <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                        <h4 style={{ fontSize: '0.9rem', color: 'var(--primary)', marginBottom: '1rem' }}>Anexar Documentos de Credenciamento</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <button className="btn-secondary" style={{ fontSize: '0.8rem', padding: '8px' }}>
+                                📁 Certificado de Especialidade
+                            </button>
+                            <button className="btn-secondary" style={{ fontSize: '0.8rem', padding: '8px' }}>
+                                📁 CRM / RQE (Frente e Verso)
+                            </button>
+                        </div>
+                        <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '10px' }}>
+                            * Estes documentos serão anexados automaticamente ao PCMSO deste profissional.
+                        </p>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                         <button
                             onClick={() => { setIsEditing(false); resetForm(); }}
