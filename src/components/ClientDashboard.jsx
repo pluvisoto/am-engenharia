@@ -14,7 +14,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
 
     // Determine Regulatory Status (Fallback logic)
     const regulatory = analyzeRegulatoryStatus(companyData);
-    const detectedPgrType = companyData?.intake_data?.pgr_type || (regulatory.recommendation === 'PGR_SIMPLIFIED' ? 'SIMPLIFIED' : 'FULL');
+    const detectedPgrType = companyData?.intake_data?.pgr_type || (regulatory.recommendation === 'DIR' ? 'DIR' : (regulatory.recommendation === 'PGR_SIMPLIFIED' ? 'SIMPLIFIED' : 'FULL'));
 
     // Configurações de Estado para Geração de PDF
     const [generatingPDF, setGeneratingPDF] = useState(false);
@@ -35,7 +35,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
         if (docType === 'pgr') {
             setGeneratingPDF(true);
 
-            if (pgrType === 'SIMPLIFIED') {
+            if (pgrType === 'DIR') {
                 setTemplateType('DIR');
                 setTimeout(() => {
                     const element = document.getElementById('dir-document-template');
@@ -45,7 +45,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
                     setTemplateType(null);
                 }, 1500);
             } else {
-                // FULL PGR
+                // FULL OR SIMPLIFIED PGR uses PGR Template (Simplified content can be handled inside template via props if needed)
                 setTemplateType('PGR');
                 setTimeout(() => {
                     const element = document.getElementById('pgr-document-template');
@@ -54,7 +54,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
 
                     setGeneratingPDF(false);
                     setTemplateType(null);
-                }, 2000); // 2s buffer for larger document
+                }, 4000); // Increased to 4s for massive document
             }
         } else if (docType === 'pcmso') {
             setGeneratingPDF(true);
@@ -65,7 +65,7 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
 
                 setGeneratingPDF(false);
                 setTemplateType(null);
-            }, 2000);
+            }, 3000); // 3s buffer for PCMSO
         } else {
             if (onViewDocs) onViewDocs(docType);
         }
@@ -86,8 +86,8 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
         },
         {
             id: 3,
-            title: 'Análise AM Engenharia',
-            desc: 'Nossa equipe técnica revisa e gera os riscos inteligentes.',
+            title: status === 'intake_completed' ? 'Aguardando Confirmação do Cliente' : 'Análise AM Engenharia',
+            desc: status === 'intake_completed' ? 'Confirme os dados para iniciarmos a análise.' : 'Nossa equipe técnica revisa e gera os riscos inteligentes.',
             status: hasAnalysis ? 'completed' : (hasIntake ? 'current' : 'pending')
         },
         {
@@ -165,22 +165,43 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
                                         )}
                                         {step.id === 3 && (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', fontSize: '0.85rem', color: '#64748b', borderLeft: '4px solid #3b82f6' }}>
-                                                    🕒 Nossa inteligência está processando seus dados. Visualize os rascunhos abaixo:
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '10px' }}>
-                                                    <button className="btn-secondary" onClick={() => handleGeneratePDF('pgr')} style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>
-                                                        📄 {detectedPgrType === 'SIMPLIFIED' ? 'Baixar DIR' : 'PGR (Rascunho)'}
-                                                    </button>
-                                                    <button className="btn-secondary" onClick={() => handleGeneratePDF('pcmso')} style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>🩺 PCMSO (Rascunho)</button>
-                                                </div>
+                                                {/* STATUS: INTAKE COMPLETED (User needs to review data) */}
+                                                {status === 'intake_completed' && (
+                                                    <div style={{ padding: '1rem', background: '#fff7ed', borderRadius: '8px', border: '1px solid #ffedd5' }}>
+                                                        <p style={{ margin: '0 0 1rem 0', color: '#c2410c', fontSize: '0.9rem' }}>
+                                                            ⚠️ Por favor, revise e confirme os cargos e setores identificados antes de prosseguirmos.
+                                                        </p>
+                                                        <button
+                                                            className="btn-primary"
+                                                            onClick={onViewDocs} // Reusing onViewDocs prop to trigger Review Mode logic in parent, or add new prop
+                                                            style={{ width: '100%', background: '#ea580c', borderColor: '#ea580c' }}
+                                                        >
+                                                            ✏️ Revisar e Confirmar Dados
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* STATUS: ANALYSIS IN PROGRESS (Waiting for Engineering) */}
+                                                {status === 'analysis_in_progress' && (
+                                                    <div style={{ padding: '1rem', background: '#eff6ff', borderRadius: '8px', border: '1px solid #dbeafe' }}>
+                                                        <p style={{ margin: 0, color: '#1e40af', fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            🕒 Em Análise
+                                                        </p>
+                                                        <p style={{ margin: '0.5rem 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>
+                                                            Os técnicos da AM Engenharia estão revisando seus riscos, exames e plano de ação. Você será notificado assim que a análise for concluída.
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {/* OLD DRAFT BUTTONS (Visible only to Admin or if needed, but per request removing for client) */}
+                                                {/* (Keeping them hidden or removed based on request) */}
                                             </div>
                                         )}
                                         {step.id === 4 && (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', fontWeight: 'bold' }}>✅ A análise técnica foi concluída! Revise os documentos finais:</p>
                                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                                    <button className="btn-primary" onClick={() => handleGeneratePDF('pgr')}>Validar {detectedPgrType === 'SIMPLIFIED' ? 'DIR' : 'PGR'} Final</button>
+                                                    <button className="btn-primary" onClick={() => handleGeneratePDF('pgr')}>Validar {detectedPgrType === 'DIR' ? 'DIR' : 'PGR'}</button>
                                                     <button className="btn-primary" onClick={() => handleGeneratePDF('pcmso')} style={{ background: 'var(--primary)' }}>Validar PCMSO Final</button>
                                                 </div>
                                             </div>
@@ -217,25 +238,35 @@ const ClientDashboard = ({ companyData, fullData, onStartIntake, onViewDocs }) =
                             </div>
                             <div>
                                 <label style={{ opacity: 0.7, fontSize: '0.75rem', textTransform: 'uppercase' }}>Grau de Risco</label>
-                                <div>{companyData?.grau_risco || 'Consultando...'}</div>
+                                <div>{companyData?.grau_risco || regulatory?.grau_risco || 'Consultando...'}</div>
                             </div>
                             <div>
                                 <label style={{ opacity: 0.7, fontSize: '0.75rem', textTransform: 'uppercase' }}>Status</label>
-                                <div style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{status.toUpperCase().replace('_', ' ')}</div>
+                                <div style={{ color: 'var(--accent)', fontWeight: 'bold' }}>
+                                    {{
+                                        'draft': 'Rascunho',
+                                        'intake_completed': 'Dados Enviados',
+                                        'analysis_in_progress': 'Em Análise',
+                                        'pending_review': 'Revisão Pendente',
+                                        'approved': 'Aprovado'
+                                    }[status] || status.toUpperCase().replace('_', ' ')}
+                                </div>
                             </div>
                             <div>
                                 <label style={{ opacity: 0.7, fontSize: '0.75rem', textTransform: 'uppercase' }}>Enquadramento Legal (NR-1)</label>
                                 <div style={{ marginTop: '4px' }}>
-                                    {detectedPgrType === 'SIMPLIFIED' ? (
+                                    {detectedPgrType === 'DIR' ? (
                                         <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                            PGR SIMPLIFICADO (DIR)
+                                            DIR (MEI - Sem Riscos)
                                         </span>
-                                    ) : detectedPgrType === 'FULL' ? (
-                                        <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                            PGR COMPLETO
+                                    ) : detectedPgrType === 'SIMPLIFIED' ? (
+                                        <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                            PGR SIMPLIFICADO
                                         </span>
                                     ) : (
-                                        <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.8rem' }}>Em análise...</span>
+                                        <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                            PGR COMPLETO (NR-01)
+                                        </span>
                                     )}
                                 </div>
                             </div>

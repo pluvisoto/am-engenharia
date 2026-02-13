@@ -1,96 +1,102 @@
 import React from 'react';
 
+/**
+ * DIR PREMIUM - DECLARAÇÃO DE INEXISTÊNCIA DE RISCOS
+ * Conformidade: NR-01.8.4
+ */
 const DIRTemplate = ({ companyData, date = new Date() }) => {
-    // Format date: "Cidade, DD de Mês de AAAA"
-    const formattedDate = date.toLocaleDateString('pt-BR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
+    const safeUpper = (val) => (val ? String(val).toUpperCase() : '');
 
-    return (
-        <div id="dir-document-template" style={{
-            padding: '40px',
-            fontFamily: 'Times New Roman, serif',
-            color: '#000',
-            background: '#fff',
-            width: '210mm', // A4 width
-            minHeight: '297mm', // A4 height
-            margin: '0 auto',
-            fontSize: '12pt',
-            lineHeight: '1.5'
-        }}>
-            {/* CABEÇALHO */}
-            <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '2px solid #000', paddingBottom: '20px' }}>
-                <h2 style={{ margin: '0', fontSize: '16pt', fontWeight: 'bold' }}>DECLARAÇÃO DE INEXISTÊNCIA DE RISCO (DIR)</h2>
-                <span style={{ fontSize: '10pt' }}>Conforme NR-1 (Item 1.8.4) - Portaria SEPRT nº 6.730/2020</span>
-            </div>
-
-            {/* 1. IDENTIFICAÇÃO DO EMPREGADOR */}
-            <div style={{ marginBottom: '30px' }}>
-                <h3 style={{ fontSize: '12pt', fontWeight: 'bold', borderBottom: '1px solid #ccc', marginBottom: '10px' }}>1. IDENTIFICAÇÃO DO EMPREGADOR</h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <tbody>
-                        <tr>
-                            <td style={{ padding: '5px', fontWeight: 'bold', width: '30%' }}>Razão Social:</td>
-                            <td style={{ padding: '5px' }}>{companyData.name}</td>
-                        </tr>
-                        <tr>
-                            <td style={{ padding: '5px', fontWeight: 'bold' }}>CNPJ:</td>
-                            <td style={{ padding: '5px' }}>{companyData.cnpj}</td>
-                        </tr>
-                        <tr>
-                            <td style={{ padding: '5px', fontWeight: 'bold' }}>CNAE Principal:</td>
-                            <td style={{ padding: '5px' }}>{companyData.cnae} - {companyData.cnae_desc}</td>
-                        </tr>
-                        <tr>
-                            <td style={{ padding: '5px', fontWeight: 'bold' }}>Grau de Risco:</td>
-                            <td style={{ padding: '5px' }}>{companyData.grau_risco || '1/2'}</td>
-                        </tr>
-                        <tr>
-                            <td style={{ padding: '5px', fontWeight: 'bold' }}>Endereço:</td>
-                            <td style={{ padding: '5px' }}>{companyData.address || 'Endereço não cadastrado'}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            {/* 2. DECLARAÇÃO */}
-            <div style={{ marginBottom: '40px', textAlign: 'justify' }}>
-                <h3 style={{ fontSize: '12pt', fontWeight: 'bold', borderBottom: '1px solid #ccc', marginBottom: '10px' }}>2. DECLARAÇÃO</h3>
-                <p style={{ marginBottom: '15px', textIndent: '30px' }}>
-                    Declaramos, para fins de dispensa da obrigatoriedade de elaboração do Programa de Gerenciamento de Riscos (PGR), conforme previsto no item 1.8.4 da Norma Regulamentadora nº 01 (NR-01), que o estabelecimento acima identificado <strong>não possui riscos físicos, químicos ou biológicos</strong> em seus ambientes de trabalho.
-                </p>
-                <p style={{ marginBottom: '15px', textIndent: '30px' }}>
-                    Declaramos ainda que as informações prestadas são verdadeiras e assumimos o compromisso de manter as medidas de prevenção necessárias, bem como de revisar esta declaração caso ocorram alterações no ambiente de trabalho que impliquem no surgimento dos referidos riscos.
-                </p>
-                <p style={{ marginBottom: '15px', textIndent: '30px' }}>
-                    Esta declaração não isenta a empresa do cumprimento das demais obrigações previstas nas Normas Regulamentadoras, incluindo a gestão de riscos ergonômicos e de acidentes.
-                </p>
-            </div>
-
-            {/* 3. ASSINATURAS */}
-            <div style={{ marginTop: '80px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-                    <p>{companyData.city || 'Local'}, {formattedDate}</p>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '50px' }}>
-                    <div style={{ textAlign: 'center', width: '45%' }}>
-                        <div style={{ borderTop: '1px solid #000', paddingTop: '5px' }}>
-                            <strong>{companyData.name}</strong><br />
-                            <span style={{ fontSize: '10pt' }}>Empregador / Responsável Legal</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* RODAPÉ */}
-            <div style={{ position: 'fixed', bottom: '20px', left: '40px', right: '40px', textAlign: 'center', fontSize: '8pt', color: '#666', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-                Documento gerado automaticamente pelo Sistema AM Engenharia em {formattedDate}.
+    const PageHeader = () => (
+        <div style={styles.header}>
+            <div style={styles.headerLeft}>
+                <div style={styles.headerLineYellow}></div>
+                <div style={styles.headerTitle}>DIR ● DECLARAÇÃO DE INEXISTÊNCIA DE RISCO</div>
             </div>
         </div>
     );
+
+    const PageFooter = () => (
+        <div style={styles.footer}>
+            <div style={styles.footerBrand}>AM ENGENHARIA E MEDICINA DO TRABALHO</div>
+            <div style={styles.footerRule}></div>
+            <div style={styles.footerContact}>WWW.AMENGENHARIASEG.COM.BR ● CONTATO@AMENGENHARIASEG.COM.BR</div>
+        </div>
+    );
+
+    return (
+        <div id="dir-document-template" style={styles.container}>
+            <div className="pdf-page" style={styles.page}>
+                <PageHeader />
+
+                <div style={styles.coverContent}>
+                    <div style={styles.docBanner}>DOCUMENTO OFICIAL</div>
+                    <h1 style={styles.mainTitle}>DIR</h1>
+                    <p style={styles.subTitle}>DECLARAÇÃO DE INEXISTÊNCIA DE RISCOS</p>
+                    <div style={styles.divider}></div>
+                </div>
+
+                <div style={styles.content}>
+                    <table style={styles.tableRef}>
+                        <tbody>
+                            <tr><td style={styles.tdLabel}>EMPRESA</td><td style={styles.tdValue}>{safeUpper(companyData.name || companyData.razao_social)}</td></tr>
+                            <tr><td style={styles.tdLabel}>CNPJ</td><td style={styles.tdValue}>{companyData.cnpj}</td></tr>
+                            <tr><td style={styles.tdLabel}>CNAE</td><td style={styles.tdValue}>{companyData.cnae} ● {safeUpper(companyData.cnae_desc)}</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div style={styles.declarationBox}>
+                        <p style={styles.p}>
+                            DECLARAMOS, PARA OS DEVIDOS FINS DE DIREITO E CONFORME O ITEM 1.8.4 DA NORMA REGULAMENTADORA Nº 01 (NR 01), QUE O ESTABELECIMENTO IDENTIFICADO NESTA DECLARAÇÃO <b>NÃO POSSUI RISCOS FÍSICOS, QUÍMICOS OU BIOLÓGICOS</b> EM SEU AMBIENTE DE TRABALHO.
+                        </p>
+                        <p style={styles.p}>
+                            ESTA DECLARAÇÃO ISENTA A ORGANIZAÇÃO DA ELABORAÇÃO DO PGR, DESDE QUE MANTIDAS AS CONDIÇÕES AQUI DESCRITAS. O MONITORAMENTO DE RISCOS ERGONÔMICOS E DE ACIDENTES SEGUE AS DEMAIS NORMAS VIGENTES.
+                        </p>
+                    </div>
+
+                    <div style={styles.signatureArea}>
+                        <p style={{ fontSize: '10pt', marginBottom: '40px' }}>GERADO EM {date.toLocaleDateString()}</p>
+                        <div style={styles.sigBox}>
+                            <div style={styles.sigLine}></div>
+                            <p style={styles.sigName}>{safeUpper(companyData.name || companyData.razao_social)}</p>
+                            <p style={styles.sigRole}>RESPONSÁVEL LEGAL</p>
+                        </div>
+                    </div>
+                </div>
+
+                <PageFooter />
+            </div>
+        </div>
+    );
+};
+
+const styles = {
+    container: { width: '210mm', backgroundColor: 'white', color: '#1a1a1a', fontFamily: "'Outfit', 'Inter', sans-serif" },
+    page: { width: '210mm', height: '296.8mm', padding: '15mm 15mm 20mm 15mm', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column' },
+    header: { display: 'flex', alignItems: 'center', marginBottom: '10mm', paddingBottom: '5px', borderBottom: '1px solid #e5e7eb' },
+    headerLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
+    headerLineYellow: { width: '4px', height: '24px', backgroundColor: '#facc15' },
+    headerTitle: { fontSize: '8pt', fontWeight: '900', letterSpacing: '2px' },
+    footer: { position: 'absolute', bottom: '15mm', left: '15mm', right: '15mm' },
+    footerBrand: { fontSize: '9pt', fontWeight: '900', textAlign: 'center' },
+    footerRule: { height: '1px', backgroundColor: '#e5e7eb', margin: '5px 0' },
+    footerContact: { fontSize: '7pt', textAlign: 'center', color: '#9ca3af', letterSpacing: '1px' },
+    coverContent: { textAlign: 'center', marginTop: '20mm', marginBottom: '20mm' },
+    docBanner: { display: 'inline-block', backgroundColor: '#000', color: '#facc15', padding: '4px 12px', fontSize: '9pt', fontWeight: '900', marginBottom: '10px' },
+    mainTitle: { fontSize: '80pt', fontWeight: '900', margin: 0 },
+    subTitle: { fontSize: '14pt', letterSpacing: '4px', opacity: 0.6 },
+    divider: { width: '60px', height: '6px', backgroundColor: '#facc15', margin: '20px auto' },
+    content: { flex: 1 },
+    tableRef: { width: '100%', borderCollapse: 'collapse', marginBottom: '30px' },
+    tdLabel: { width: '25%', padding: '12px', fontSize: '9pt', fontWeight: 'bold', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb' },
+    tdValue: { padding: '12px', fontSize: '10pt', border: '1px solid #e5e7eb' },
+    declarationBox: { padding: '30px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' },
+    p: { fontSize: '11pt', lineHeight: 1.8, marginBottom: '20px', textAlign: 'justify' },
+    signatureArea: { marginTop: '40mm', textAlign: 'center' },
+    sigBox: { textAlign: 'center', width: '300px', margin: '0 auto' },
+    sigLine: { height: '1px', backgroundColor: '#000', marginBottom: '10px' },
+    sigName: { fontSize: '11pt', fontWeight: 'bold', margin: 0 },
+    sigRole: { fontSize: '8pt', opacity: 0.7, margin: 0 }
 };
 
 export default DIRTemplate;

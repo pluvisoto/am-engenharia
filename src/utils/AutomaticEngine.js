@@ -1,5 +1,5 @@
 // AutomaticEngine.js - Gera dados de PGR/PCMSO automaticamente
-import { RISK_CATALOG, suggestExamsForRisk, evaluateQuantification } from './RiskRules';
+import { RISK_CATALOG, suggestExamsForRisk, evaluateQuantification } from './RiskRules.js';
 
 // ==================== MAPEAMENTO DE CARGOS → CBOs ====================
 const ROLE_TO_CBO_MAP = {
@@ -81,214 +81,71 @@ export const mapRoleToCBO = (roleTitle) => {
     return '4110-10'; // Auxiliar Administrativo (padrão)
 };
 
+
 // ==================== GERAÇÃO DE RISCOS BASEADO EM CNAE + ATIVIDADES ====================
 
-export const generateRisksFromActivities = (cnae, cnaeDesc, activitiesSelected) => {
+export const generateRisksFromActivities = (cnaeInfo, activitiesSelected) => {
     const risks = [];
-    const desc = (cnaeDesc || '').toLowerCase();
+    const { cnae_desc } = cnaeInfo;
+    const desc = (cnae_desc || '').toLowerCase();
+
+    const baseRisk = (id, hazard, type, source, impact) => ({
+        id: `risk_${Date.now()}_${id}`,
+        hazard,
+        type,
+        source,
+        circumstances: 'Durante a jornada de trabalho habitual',
+        methodology: 'Avaliação Qualitativa conforme NR 01',
+        description: `Exposição ao fator ${hazard} na fonte ${source}`,
+        impact,
+        exposure_type: 'Habitual',
+        p: 3, s: 2, level: 6,
+        level_label: 'Moderado',
+        uncertainty_degree: 0, // 0: Certa, 1: Incerta, 2: Altamente Incerta
+        risk_color: '#facc15',
+        controls_existing: 'Uso de EPI e orientações de segurança',
+        auto: true
+    });
+
+    // RISCO BASE (Sempre presente conforme NR-17)
+    risks.push({
+        ...baseRisk('base_erg', 'Ergonômico: Postura de Trabalho', 'Ergonômico', 'Posto de trabalho e mobiliário', 'Cansaço físico e desconforto muscular'),
+        p: 2, s: 2, level: 4, level_label: 'Tolerável'
+    });
 
     // ATIVIDADE: Computadores/Escritório
     if (activitiesSelected.includes('Computadores')) {
         risks.push({
-            id: `risk_${Date.now()}_1`,
-            hazard: 'Ergonômico - Postura',
-            type: 'Ergonômico',
-            source: 'Uso prolongado de computador',
-            circumstances: 'Durante jornada de trabalho',
-            methodology: 'Critério Qualitativo - Análise Ergonômica',
-            description: 'Risco ergonômico relacionado à postura inadequada',
-            impact: 'LER/DORT, fadiga visual',
-            exposure_type: 'Habitual',
-            p: 3, s: 2, level: 6,
-            level_label: 'Tolerável',
-            risk_color: '#92D050',
-            control_action: 'Manter controle existente',
-            // Quantitative Data
-            is_quantitative: false,
-            measurement_unit: '',
-            measurement_value: '',
-            limit_tolerance: '',
-            action_level: '',
-            auto: true
+            ...baseRisk(1, 'Ergonômico: Postura Estática', 'Ergonômico', 'Uso de computador', 'Dores lombares e fadiga visual'),
+            psychosocial: {
+                emotional: 2,
+                autonomy: 4,
+                social: 4
+            }
         });
     }
 
-    // ATIVIDADE: Máquinas/Equipamentos (RUIDA COM ESTRUTURA QUANTITATIVA)
+    // ATIVIDADE: Máquinas/Equipamentos
     if (activitiesSelected.includes('Máquinas')) {
         risks.push(
-            {
-                id: `risk_${Date.now()}_2`,
-                hazard: 'Ruído Contínuo ou Intermitente',
-                type: 'Físico',
-                source: 'Funcionamento de máquinas',
-                circumstances: 'Durante operações de produção',
-                methodology: 'Dosimetria de Ruído (NHO-01)',
-                description: 'Ruído proveniente de máquinas e ferramentas',
-                impact: 'Perda Auditiva Induzida por Ruído (PAIR)',
-                exposure_type: 'Habitual',
-                p: 4, s: 3, level: 12,
-                level_label: 'Moderado',
-                risk_color: '#FFFF00',
-                controls_existing: 'Protetor auricular tipo plug',
-                control_action: 'Implementar PCA',
-                // Quantitative Data - Prepared for user input
-                is_quantitative: true,
-                measurement_unit: 'dB(A)',
-                measurement_value: '', // User must fill
-                limit_tolerance: '85',
-                action_level: '80',
-                technique: 'Dosímetro',
-                auto: true
-            },
-            {
-                id: `risk_${Date.now()}_3`,
-                hazard: 'Acidente Mecânico',
-                type: 'Acidente',
-                source: 'Partes móveis de máquinas',
-                circumstances: 'Durante operação e manutenção',
-                methodology: 'APR',
-                description: 'Risco de prensagem ou corte',
-                impact: 'Fraturas, amputações',
-                exposure_type: 'Habitual',
-                p: 3, s: 4, level: 12,
-                level_label: 'Moderado',
-                risk_color: '#FFFF00',
-                control_action: 'Adicionar proteções físicas',
-                is_quantitative: false,
-                auto: true
-            }
+            baseRisk(2, 'Físico: Ruído Contínuo', 'Físico', 'Maquinário operacional', 'Perda auditiva induzida por ruído'),
+            baseRisk(3, 'Acidente: Mecânico', 'Acidente', 'Partes móveis sem proteção', 'Corte e esmagamento')
         );
     }
 
     // ATIVIDADE: Produtos Químicos
     if (activitiesSelected.includes('Químicos')) {
-        risks.push({
-            id: `risk_${Date.now()}_4`,
-            hazard: 'Agentes Químicos (Geral)',
-            type: 'Químico',
-            source: 'Manuseio de produtos químicos',
-            circumstances: 'Durante processos produtivos',
-            methodology: 'Qualitativa / Quantitativa se necessário',
-            description: 'Exposição a substâncias químicas',
-            impact: 'Dermatites, intoxicação',
-            exposure_type: 'Habitual',
-            p: 3, s: 3, level: 9,
-            risk_color: '#92D050',
-            // Quantitative Data
-            is_quantitative: true,
-            measurement_unit: 'ppm / mg/m³',
-            measurement_value: '',
-            limit_tolerance: '',
-            action_level: '',
-            auto: true
-        });
+        risks.push(baseRisk(4, 'Químico: Agentes Diversos', 'Químico', 'Manipulação de produtos', 'Dermatite e irritação'));
     }
 
     // ATIVIDADE: Trabalho em Altura
     if (activitiesSelected.includes('Altura')) {
-        risks.push({
-            id: `risk_${Date.now()}_5`,
-            hazard: 'Queda de Altura',
-            type: 'Acidente',
-            source: 'Trabalho em andaimes/escadas',
-            circumstances: 'Manutenção e instalações',
-            methodology: 'APR',
-            description: 'Queda de nível diferente',
-            impact: 'Traumatismos, óbito',
-            exposure_type: 'Eventual',
-            p: 2, s: 5, level: 10,
-            risk_color: '#FFC000',
-            is_quantitative: false,
-            auto: true
-        });
-    }
-
-    // ATIVIDADE: Veículos
-    if (activitiesSelected.includes('Veículos')) {
-        risks.push({
-            id: `risk_${Date.now()}_6`,
-            hazard: 'Acidente de Trânsito',
-            type: 'Acidente',
-            source: 'Condução de veículos',
-            circumstances: 'Deslocamentos a serviço',
-            methodology: 'Análise de Acidentes',
-            description: 'Colisão, atropelamento',
-            impact: 'Politraumatismo',
-            exposure_type: 'Habitual',
-            p: 2, s: 4, level: 8,
-            risk_color: '#92D050',
-            is_quantitative: false,
-            auto: true
-        });
-    }
-
-    // ATIVIDADE: Espaço Confinado
-    if (activitiesSelected.includes('Confined')) {
-        risks.push({
-            id: `risk_${Date.now()}_confined`,
-            hazard: 'Deficiência de Oxigênio / Atmosfera IPVS',
-            type: 'Físico/Químico',
-            source: 'Tanques e silos',
-            circumstances: 'Entrada em espaço confinado',
-            methodology: 'Medição Direta - NR-33',
-            description: 'Ambiente com atmosfera perigosa',
-            impact: 'Asfixia, morte',
-            exposure_type: 'Eventual',
-            p: 2, s: 5, level: 10,
-            risk_color: '#FFC000',
-            is_quantitative: true,
-            measurement_unit: '% O2',
-            measurement_value: '',
-            limit_tolerance: '19.5% - 23%',
-            action_level: '',
-            auto: true
-        });
-    }
-
-    // ATIVIDADE: Eletricidade
-    if (activitiesSelected.includes('Eletricidade')) {
-        risks.push({
-            id: `risk_${Date.now()}_electric`,
-            hazard: 'Choque Elétrico / Arco Elétrico',
-            type: 'Acidente',
-            source: 'Instalações elétricas',
-            circumstances: 'Manutenção em rede',
-            methodology: 'APR / NR-10',
-            description: 'Contato com partes energizadas',
-            impact: 'Queimaduras, parada cardíaca',
-            exposure_type: 'Habitual',
-            p: 2, s: 5, level: 10,
-            risk_color: '#FFC000',
-            is_quantitative: false,
-            auto: true
-        });
-    }
-
-    // CNAE: Construção (Exemplo Extra)
-    if (desc.includes('construção') || desc.includes('obra')) {
-        risks.push({
-            id: `risk_${Date.now()}_const_dust`,
-            hazard: 'Poeiras Minerais (Sílica)',
-            type: 'Químico',
-            source: 'Corte de materiais',
-            circumstances: 'Obras civis',
-            methodology: 'Gravimetria',
-            description: 'Poeira respirável contendo sílica',
-            impact: 'Silicose',
-            exposure_type: 'Habitual',
-            p: 3, s: 3, level: 9,
-            risk_color: '#92D050',
-            is_quantitative: true,
-            measurement_unit: 'mg/m³',
-            measurement_value: '',
-            limit_tolerance: '0.1', // mg/m³
-            action_level: '0.05',
-            auto: true
-        });
+        risks.push(baseRisk(5, 'Acidente: Queda de Altura', 'Acidente', 'Trabalho em níveis elevados', 'Queda com fratura ou óbito'));
     }
 
     return risks;
 };
+
 
 // ==================== GERAÇÃO DE EPIs BASEADO EM RISCOS ====================
 
@@ -296,39 +153,24 @@ export const generateEPIsFromRisks = (risks) => {
     const episMap = {};
 
     risks.forEach(risk => {
-        if (risk.hazard.includes('Ergonômico') && !episMap['cadeira']) {
-            episMap['cadeira'] = {
-                id: `epi_cad_${Date.now()}`, name: 'Cadeira Ergonômica', ca: 'N/A', quantity_per_employee: 1, validity_months: 60, observations: 'Conf. NR-17', auto: true
-            };
-        }
-        if (risk.hazard.includes('Ruído') && !episMap['protetor']) {
+        if (risk.type === 'Físico' && risk.hazard.includes('Ruído') && !episMap['protetor']) {
             episMap['protetor'] = {
-                id: `epi_plug_${Date.now()}`, name: 'Protetor Auricular Plug Inserção', ca: '11512', quantity_per_employee: 1, validity_months: 6, observations: 'Silicone', auto: true
+                id: `epi_plug_${Date.now()}`,
+                name: 'Protetor Auricular Plug',
+                ca: '11512',
+                quantity: 1,
+                observations: 'Substituição semestral ou conforme desgaste',
+                justification: 'Inviabilidade técnica momentânea de enclausuramento da fonte ruído'
             };
         }
-        if (risk.type === 'Químico' && !episMap['luva_nitr']) {
-            episMap['luva_nitr'] = {
-                id: `epi_luv_${Date.now()}`, name: 'Luva Nitrílica', ca: '32034', quantity_per_employee: 2, validity_months: 1, observations: 'Proteção química', auto: true
-            };
-        }
-        if (risk.type === 'Químico' && !episMap['mascara']) {
-            episMap['mascara'] = {
-                id: `epi_masc_${Date.now()}`, name: 'Respirador PFF2 (N95)', ca: '38505', quantity_per_employee: 5, validity_months: 0, observations: 'Descartável', auto: true
-            };
-        }
-        if (risk.hazard.includes('Altura') && !episMap['cinto']) {
-            episMap['cinto'] = {
-                id: `epi_cinto_${Date.now()}`, name: 'Cinto PQD', ca: '37977', quantity_per_employee: 1, validity_months: 60, observations: 'Com talabarte duplo', auto: true
-            };
-        }
-        if ((risk.type === 'Acidente' || risk.hazard.includes('Mecânico')) && !episMap['oculos']) {
-            episMap['oculos'] = {
-                id: `epi_ocu_${Date.now()}`, name: 'Óculos de Segurança Incolor', ca: '10346', quantity_per_employee: 1, validity_months: 12, observations: 'Anti-risco', auto: true
-            };
-        }
-        if ((risk.type === 'Acidente' || risk.hazard.includes('Mecânico')) && !episMap['botina']) {
+        if (risk.type === 'Acidente' && (risk.hazard.includes('Altura') || risk.hazard.includes('Mecânico')) && !episMap['botina']) {
             episMap['botina'] = {
-                id: `epi_bot_${Date.now()}`, name: 'Botina de Segurança', ca: '43377', quantity_per_employee: 1, validity_months: 12, observations: 'Com biqueira', auto: true
+                id: `epi_bot_${Date.now()}`,
+                name: 'Botina de Segurança',
+                ca: '43377',
+                quantity: 1,
+                observations: 'Uso obrigatório em área operacional',
+                justification: 'Proteção individual remanescente após medidas administrativas'
             };
         }
     });
@@ -339,151 +181,131 @@ export const generateEPIsFromRisks = (risks) => {
 // ==================== GERAÇÃO DE EXAMES BASEADO EM RISCOS ====================
 
 export const generateExamsFromRisks = (risks) => {
-    // Start with basic exams (always required)
     const examsList = [
         {
             id: `exam_${Date.now()}_clinico`,
-            exam_type: 'Exame Clínico (ASO)',
-            exam_description: 'Anamnese e exame físico',
+            exam_type: 'Avaliação Clínica e Anamnese',
             periodicidade: 'Anual',
-            timing: ['Admissional', 'Periódico', 'Demissional', 'Mudança de Risco'],
-            reason: 'NR-07 (Obrigatório)',
+            timing: 'Admissional e Periódico',
+            reason: 'Monitoramento global de saúde (NR 07)',
             auto: true
         }
     ];
 
     risks.forEach(risk => {
-        // Use the RiskRules logic to suggest exams
-        // Check if we have quantitative data
-        const measurement = risk.measurement_value ? parseFloat(risk.measurement_value) : null;
-        const suggestions = suggestExamsForRisk(risk.hazard, measurement);
-
-        suggestions.forEach(sug => {
-            // Check if already added to avoid duplicates
-            if (!examsList.find(e => e.exam_type === sug.exam)) {
-                examsList.push({
-                    id: `exam_${Date.now()}_${sug.exam.substring(0, 4)}`,
-                    exam_type: sug.exam,
-                    exam_description: 'Exame complementar específico',
-                    periodicidade: sug.periodicity || 'A definir pelo Médico PCMSO',
-                    timing: ['Admissional', 'Periódico', 'Demissional'],
-                    reason: sug.reason,
-                    related_risk_ids: [risk.id],
-                    auto: true
-                });
-            }
-        });
-    });
-
-    return examsList;
-};
-
-// ==================== GERAÇÃO DE CRONOGRAMA DE AÇÕES ====================
-
-export const generateActionPlan = (risks) => {
-    const actions = [];
-    const now = new Date();
-
-    // Ação padrão: Apresentação do PGR
-    actions.push({
-        id: `action_${Date.now()}_1`,
-        description: 'Assinatura e Divulgação do PGR',
-        responsible: 'Engenheiro de Segurança',
-        deadline: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'Pendente',
-        auto: true
-    });
-
-    // Actions based on quantified risks
-    risks.forEach(risk => {
-        if (risk.is_quantitative && (!risk.measurement_value || risk.measurement_value === '')) {
-            actions.push({
-                id: `action_meas_${risk.id}`,
-                description: `Realizar medição quantitativa de ${risk.hazard}`,
-                responsible: 'Higiene Ocupacional',
-                deadline: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 days
-                status: 'Pendente',
-                related_risk_ids: [risk.id],
+        if (risk.type === 'Físico' && risk.hazard.includes('Ruído')) {
+            examsList.push({
+                id: `exam_${Date.now()}_audio`,
+                exam_type: 'Audiometria Tonal e Ocupacional',
+                periodicidade: 'Anual',
+                timing: 'Admissional e Periódico',
+                reason: 'Monitoramento de acuidade auditiva',
                 auto: true
             });
         }
     });
 
+    return examsList;
+};
+
+// ==================== GERAÇÃO DE CRONOGRAMA DE AÇÕES (5W2H) ====================
+
+export const generateActionPlan = (risks) => {
+    const now = new Date();
+    const actions = [];
+
     risks.forEach(risk => {
-        if (risk.hazard.includes('Ruído')) {
-            actions.push({ id: `act_pca`, description: 'Implementar PCA (Prog. Conservação Auditiva)', responsible: 'Fonoaudióloga', deadline: new Date(now.getTime() + 90 * 86400000).toISOString(), status: 'Pendente', auto: true });
-        }
-        if (risk.hazard.includes('Respirador') || risk.hazard.includes('Poeira') || risk.hazard.includes('Químico')) {
-            actions.push({ id: `act_ppr`, description: 'Implementar PPR (Prog. Proteção Respiratória)', responsible: 'Técnico Seg.', deadline: new Date(now.getTime() + 90 * 86400000).toISOString(), status: 'Pendente', auto: true });
-        }
+        const priority = risk.level >= 15 ? 'Imediata' : 'Planejada';
+
+        actions.push({
+            id: `act_${risk.id}`,
+            risk_id: risk.id,
+            description: `Implementar melhoria no controle do risco: ${risk.hazard}`,
+            responsible: 'Gestor da Unidade',
+            deadline: new Date(now.getTime() + (priority === 'Imediata' ? 30 : 180) * 86400000).toISOString(),
+            status: 'Pendente',
+            evidence: 'Relatório fotográfico e lista de presença',
+            category: 'Controle Técnico',
+            auto: true
+        });
     });
 
-    return actions.filter((v, i, a) => a.findIndex(t => (t.description === v.description)) === i);
+    return actions;
 };
 
 // ==================== FUNÇÃO PRINCIPAL ====================
+
 
 export const generateCompleteData = (cnpj, intakeData) => {
     const { employee_count, sectors_selected, roles_text, activities_selected, cnae, cnae_desc } = intakeData;
 
     // 1. Processar setores
-    const sectors = sectors_selected.map((sectorName, index) => ({
+    const sectors = (sectors_selected || []).map((sectorName, index) => ({
         id: `s${index + 1}`,
-        code: String.fromCharCode(65 + index), // A, B, C...
+        code: `${index + 1}`,
         name: sectorName.toUpperCase(),
-        description: `Setor operacional`,
+        description: `Ambiente em alvenaria, com piso de concreto revestido com cerâmica, ventilação natural e iluminação artificial por lâmpadas LED, conforme parâmetros da NHO 11.`,
         auto: true
     }));
 
     // 2. Processar cargos
-    const rolesArray = roles_text.split(',').map(r => r.trim()).filter(r => r);
-    const roles = rolesArray.map((roleTitle, index) => ({
-        id: `r${index + 1}`,
-        sector_id: sectors[index % sectors.length]?.id || 's1', // Distribui entre setores
-        cbo: mapRoleToCBO(roleTitle),
-        name: roleTitle,
-        employee_count: Math.ceil(employee_count / rolesArray.length), // Distribui funcionários
-        activities: [`Atividades inerentes ao cargo de ${roleTitle.toLowerCase()}`],
-        workload: '44h',
-        shift: 'Comercial',
-        auto: true
-    }));
+    const rolesArray = (roles_text || '').split(',').map(r => r.trim()).filter(r => r);
+    if (rolesArray.length === 0) rolesArray.push('COLABORADOR GERAL');
 
-    // 3. Gerar riscos
-    // Agora passamos o objeto completo de informações do CNAE
-    const cnaeInfo = {
-        cnae,
-        cnae_desc,
-        cnaes_secundarios: intakeData.cnaes_secundarios || []
-    };
-    let risk_inventory = generateRisksFromActivities(cnaeInfo, activities_selected);
-
-    // FILTRO DE CORREÇÃO (NR-1 - PGR SIMPLIFICADO)
-    if (intakeData.pgr_type === 'SIMPLIFIED') {
-        console.log('[AutomaticEngine] Applying SIMPLIFIED PGR filter (Removing Phys/Chem/Bio)');
-        risk_inventory = risk_inventory.filter(risk => {
-            const type = risk.type.toLowerCase();
-            // Mantém apenas Ergonômico e Acidente
-            const isAllowed = type.includes('ergonômico') || type.includes('acidente') || type.includes('mecânico');
-            return isAllowed;
-        });
-    }
-
-    // 4. Vincular riscos aos cargos (round-robin simplificado para MVP)
-    risk_inventory.forEach((risk, index) => {
-        risk.role_id = roles[index % roles.length]?.id || 'r1';
-        risk.sector_id = roles[index % roles.length]?.sector_id || 's1';
+    const roles = rolesArray.map((roleTitle, index) => {
+        const sector = sectors[index % (sectors.length || 1)] || sectors[0] || { name: 'GERAL' };
+        return {
+            id: `r${index + 1}`,
+            sector_id: sector.id || 's1',
+            sector_name: sector.name,
+            name: roleTitle.toUpperCase(),
+            cbo: mapRoleToCBO(roleTitle),
+            employee_count: Math.ceil((employee_count || 1) / rolesArray.length) || 1,
+            description: `Execução de tarefas administrativas e operacionais inerentes ao cargo de ${roleTitle}, cumprindo as Normas Regulamentadoras vigentes.`,
+            workload: '44 horas semanais',
+            auto: true
+        };
     });
 
-    // 5. Gerar EPIs
+    // 3. Gerar riscos
+    const cnaeInfo = { cnae, cnae_desc };
+    let risk_inventory = generateRisksFromActivities(cnaeInfo, activities_selected);
+
+    // 4. Vincular riscos aos cargos e adicionar contexto
+    risk_inventory = risk_inventory.map((risk, index) => {
+        const role = roles[index % roles.length] || roles[0];
+        const score = risk.p * risk.s;
+        return {
+            ...risk,
+            role_id: role.id,
+            role_name: role.name,
+            sector_id: role.sector_id,
+            sector_name: role.sector_name,
+            score: score,
+            level_label: score >= 15 ? 'INTOLERÁVEL' : score >= 10 ? 'SUBSTANCIAL' : score >= 5 ? 'MODERADO' : 'TOLERÁVEL',
+            suggested_epi: risk.type === 'Físico' ? 'Protetor Auricular' : risk.type === 'Acidente' ? 'Botina / Capacete' : 'EPC / Orientação'
+        };
+    });
+
+    // 5. Gerar outros dados
     const epis = generateEPIsFromRisks(risk_inventory);
     epis.forEach(epi => { epi.applicable_roles = roles.map(r => r.id); });
 
-    // 6. Gerar exames (Agora usa lógica de periodicidade do RiskRules)
     const medical_exams = generateExamsFromRisks(risk_inventory);
 
-    // 7. Gerar cronograma (Agora pede medições se faltarem)
-    const action_plan = generateActionPlan(risk_inventory);
+    // Plano de Ação Personalizado
+    const action_plan = [
+        { description: 'Realização de treinamento de integração NR-01', deadline: '30 dias', status: 'Pendente', responsible: 'Segurança do Trabalho' },
+        { description: 'Avaliação quantitativa de ruído nos postos críticos', deadline: '60 dias', status: 'Pendente', responsible: 'Engenharia' },
+        { description: 'Inspeção periódica de EPIs e check-lists', deadline: 'Mensal', status: 'Em andamento', responsible: 'Encarregado' },
+        { description: 'Revisão da análise ergonômica preliminar', deadline: 'Anual', status: 'Não iniciado', responsible: 'Médico/Engenheiro' }
+    ];
+
+    // Cálculo Simples de IQCT (nB=baixo, nM=moderado, nA=alto)
+    const nA = risk_inventory.filter(r => r.score >= 15).length;
+    const nM = risk_inventory.filter(r => r.score >= 5 && r.score < 15).length;
+    const nB = risk_inventory.length - nA - nM;
+    const iqct = Math.round(((4 * nB + 3 * nM + nA) / (nB + nM + nA || 1) / 4) * 100);
 
     return {
         sectors,
@@ -492,9 +314,10 @@ export const generateCompleteData = (cnpj, intakeData) => {
         epis,
         medical_exams,
         action_plan,
+        iqct: iqct || 100,
         meta: {
             pgr_type: intakeData.pgr_type || 'FULL',
-            regulation_standard: intakeData.pgr_type === 'SIMPLIFIED' ? 'NR-1.8.4' : 'NR-1.5'
+            validity: '24 meses'
         }
     };
 };

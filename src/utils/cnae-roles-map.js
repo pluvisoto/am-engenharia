@@ -3,7 +3,7 @@
 
 export const getRolesByCNAE = (cnae) => {
     // Remove formatação do CNAE
-    const cleanCNAE = cnae?.replace(/[.\-\/]/g, '').substring(0, 4) || '';
+    const cleanCNAE = String(cnae || '').replace(/[.\-\/]/g, '').substring(0, 4);
 
     // Mapeamento simplificado por divisão CNAE (primeiros 2 dígitos)
     const division = cleanCNAE.substring(0, 2);

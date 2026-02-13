@@ -8,7 +8,7 @@
  * @returns {string} Clean CNPJ with only numbers
  */
 export function cleanCNPJ(cnpj) {
-    return cnpj.replace(/[^\d]/g, '');
+    return String(cnpj || '').replace(/[^\d]/g, '');
 }
 
 /**
@@ -121,7 +121,7 @@ export async function fetchCNPJData(cnpj) {
  * @returns {string} Formatted phone
  */
 export function formatWhatsApp(phone) {
-    const clean = phone.replace(/[^\d]/g, '');
+    const clean = String(phone || '').replace(/[^\d]/g, '');
 
     if (clean.length === 11) {
         return clean.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');

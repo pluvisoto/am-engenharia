@@ -1,0 +1,142 @@
+{
+  "abertura": "19/02/2025",
+  "situacao": "ATIVA",
+  "tipo": "MATRIZ",
+  "nome": "SINAPSE LTDA",
+  "fantasia": "SINAPSE",
+  "porte": "MICRO EMPRESA",
+  "natureza_juridica": "206-2 - Sociedade Empresária Limitada",
+  "atividade_principal": [
+    {
+      "code": "62.09-1-00",
+      "text": "Suporte técnico, manutenção e outros serviços em tecnologia da informação"
+    }
+  ],
+  "atividades_secundarias": [
+    {
+      "code": "46.47-8-02",
+      "text": "Comércio atacadista de livros, jornais e outras publicações"
+    },
+    {
+      "code": "47.61-0-01",
+      "text": "Comércio varejista de livros"
+    },
+    {
+      "code": "58.11-5-00",
+      "text": "Edição de livros"
+    },
+    {
+      "code": "59.12-0-99",
+      "text": "Atividades de pós-produção cinematográfica, de vídeos e de programas de televisão não especificadas anteriormente"
+    },
+    {
+      "code": "62.01-5-01",
+      "text": "Desenvolvimento de programas de computador sob encomenda"
+    },
+    {
+      "code": "62.02-3-00",
+      "text": "Desenvolvimento e licenciamento de programas de computador customizáveis"
+    },
+    {
+      "code": "62.03-1-00",
+      "text": "Desenvolvimento e licenciamento de programas de computador não-customizáveis"
+    },
+    {
+      "code": "63.19-4-00",
+      "text": "Portais, provedores de conteúdo e outros serviços de informação na internet"
+    },
+    {
+      "code": "70.20-4-00",
+      "text": "Atividades de consultoria em gestão empresarial"
+    },
+    {
+      "code": "73.12-2-00",
+      "text": "Agenciamento de espaços para publicidade, exceto em veículos de comunicação"
+    },
+    {
+      "code": "73.19-0-02",
+      "text": "Promoção de vendas"
+    },
+    {
+      "code": "73.19-0-03",
+      "text": "Marketing direto"
+    },
+    {
+      "code": "73.19-0-04",
+      "text": "Consultoria em publicidade"
+    },
+    {
+      "code": "74.90-1-04",
+      "text": "Atividades de intermediação e agenciamento de serviços e negócios em geral, exceto imobiliários"
+    },
+    {
+      "code": "82.20-2-00",
+      "text": "Atividades de teleatendimento"
+    },
+    {
+      "code": "85.99-6-04",
+      "text": "Treinamento em desenvolvimento profissional e gerencial"
+    },
+    {
+      "code": "85.99-6-99",
+      "text": "Outras atividades de ensino não especificadas anteriormente"
+    }
+  ],
+  "qsa": [
+    {
+      "nome": "FELIPE AUGUSTO RIBAS LUVISOTO",
+      "qual": "22-Sócio"
+    },
+    {
+      "nome": "MATHEUS GUIMARAES DE LIMA CANDIDO GONCALVES",
+      "qual": "22-Sócio"
+    },
+    {
+      "nome": "LUIS GUILHERME LIMA KEMPE",
+      "qual": "22-Sócio"
+    },
+    {
+      "nome": "BRUNO GRANATE CANDIDO",
+      "qual": "22-Sócio"
+    },
+    {
+      "nome": "PAULO CESAR LUVISOTO FILHO",
+      "qual": "49-Sócio-Administrador"
+    }
+  ],
+  "logradouro": "RUA MARECHAL DEODORO",
+  "numero": "319",
+  "complemento": "SALA 01",
+  "municipio": "SAO JOAO DA BOA VISTA",
+  "bairro": "CENTRO",
+  "uf": "SP",
+  "cep": "13.870-223",
+  "email": "paulo@xisumsales.com",
+  "telefone": "(19) 8323-3544",
+  "data_situacao": "19/02/2025",
+  "cnpj": "59.551.107/0001-70",
+  "ultima_atualizacao": "2026-01-11T23:59:59.000Z",
+  "status": "OK",
+  "efr": "",
+  "motivo_situacao": "",
+  "situacao_especial": "",
+  "data_situacao_especial": "",
+  "capital_social": "100000.00",
+  "simples": {
+    "optante": true,
+    "data_opcao": "19/02/2025",
+    "data_exclusao": null,
+    "ultima_atualizacao": "2026-01-11T23:59:59.000Z"
+  },
+  "simei": {
+    "optante": false,
+    "data_opcao": null,
+    "data_exclusao": null,
+    "ultima_atualizacao": "2026-01-11T23:59:59.000Z"
+  },
+  "extra": {},
+  "billing": {
+    "free": true,
+    "database": true
+  }
+}

@@ -17,6 +17,9 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
     const [activitiesSelected, setActivitiesSelected] = useState([]);
     const [photos, setPhotos] = useState([]);
     const [suggestedRoles, setSuggestedRoles] = useState([]);
+    const [repName, setRepName] = useState('');
+    const [repCPF, setRepCPF] = useState('');
+    const [repEmail, setRepEmail] = useState('');
 
     // Auto-load company data if CNPJ is provided as prop
     useEffect(() => {
@@ -87,7 +90,7 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
     }, [companyData]);
 
     const handleSearchCNPJ = async () => {
-        if (cnpj.replace(/\D/g, '').length !== 14) {
+        if (String(cnpj || '').replace(/\D/g, '').length !== 14) {
             alert('CNPJ inválido');
             return;
         }
@@ -98,44 +101,73 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
             // Check if company exists in Supabase
             console.log('[ClientIntakeForm] Checking if company exists:', cnpj);
             const existing = await getClientByCNPJ(cnpj);
-            console.log('[ClientIntakeForm] Existing company:', existing);
+            console.log('[ClientIntakeForm] Existing company lookup result:', existing);
 
             if (existing) {
+                console.log('[ClientIntakeForm] Found existing company in DB');
                 setCompanyData(existing);
-                setStep(2);
                 setLoading(false);
                 return;
             }
 
-            // Fetch from BrasilAPI and save to Supabase
+            // Fetch from BrasilAPI
             console.log('[ClientIntakeForm] Fetching from BrasilAPI...');
             const data = await fetchCompanyData(cnpj);
             console.log('[ClientIntakeForm] Data from BrasilAPI:', data);
 
             if (data) {
                 setCompanyData(data);
-
-                // Save to Supabase
-                console.log('[ClientIntakeForm] Saving to Supabase...');
-                const saveResult = await saveClient(data);
-                console.log('[ClientIntakeForm] Save result:', saveResult);
-
-                if (saveResult && saveResult.success && saveResult.data) {
-                    console.log('[ClientIntakeForm] Saved company successfully:', saveResult.data);
-                    setCompanyData(saveResult.data);
-                } else {
-                    console.error('[ClientIntakeForm] Failed to save company:', saveResult);
-                    alert('⚠️ Empresa encontrada, mas houve erro ao salvar no banco. Continue o cadastro mesmo assim.');
-                    setCompanyData(data);
-                }
-
-                setStep(2);
             } else {
-                alert('CNPJ não encontrado. Verifique e tente novamente.');
+                alert('CNPJ não encontrado em nossas bases ou na Receita Federal. Verifique e tente novamente.');
             }
         } catch (error) {
             console.error('[ClientIntakeForm] Error in handleSearchCNPJ:', error);
-            alert('Erro: ' + error.message);
+            alert('Erro ao buscar CNPJ: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleConfirmCompany = async () => {
+        if (!companyData) return;
+
+        // Validação dos dados do representante
+        if (!repName || !repCPF || !repEmail) {
+            alert('⚠️ Por favor, preencha os dados do representante da empresa (quem assinará os documentos).');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // Unifica os dados da empresa com os do representante
+            const clientToSave = {
+                ...companyData,
+                representative_name: repName,
+                representative_cpf: repCPF,
+                representative_email: repEmail
+            };
+
+            console.log('[ClientIntakeForm] Salvando/Atualizando empresa no Supabase...', clientToSave);
+            const saveResult = await saveClient(clientToSave);
+            console.log('[ClientIntakeForm] Resultado do salvamento:', saveResult);
+
+            if (saveResult && saveResult.success && saveResult.data) {
+                setCompanyData(saveResult.data);
+                setStep(2);
+            } else {
+                console.error('[ClientIntakeForm] Falha ao salvar:', saveResult.error);
+                let errorMsg = saveResult.error || 'Erro desconhecido';
+
+                // Erro de coluna faltante é o mais provável se o banco não foi atualizado
+                if (String(errorMsg).toLowerCase().includes('column') || String(errorMsg).toLowerCase().includes('coluna')) {
+                    errorMsg = 'A tabela "companies" no banco de dados não possui as novas colunas para o representante. Por favor, execute o script SQL "add_representative_to_companies.sql" no seu Supabase SQL Editor para corrigir isso.';
+                }
+
+                alert('❌ Erro no Banco de Dados: ' + errorMsg);
+            }
+        } catch (error) {
+            console.error('[ClientIntakeForm] Error in handleConfirmCompany:', error);
+            alert('Ocorreu um erro ao processar sua confirmação.');
         } finally {
             setLoading(false);
         }
@@ -159,7 +191,8 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
 
     const handleComplete = async () => {
         // Validation for Regulatory Check
-        if (regStatus?.recommendation === 'PGR_SIMPLIFIED' && hasAgents === null) {
+        const isLowRiskEligible = regStatus?.recommendation === 'PGR_SIMPLIFIED' || regStatus?.recommendation === 'DIR';
+        if (isLowRiskEligible && hasAgents === null) {
             alert('⚠️ Por favor, responda à Verificação de Agentes (Sim ou Não) antes de continuar.');
             return;
         }
@@ -168,8 +201,17 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
 
         try {
             // Determine Final PGR Type
-            const isSimplifiedEligible = regStatus?.recommendation === 'PGR_SIMPLIFIED';
-            const finalPgrType = (isSimplifiedEligible && hasAgents === 'no') ? 'SIMPLIFIED' : 'FULL';
+            let finalPgrType = 'FULL';
+
+            if (isLowRiskEligible && hasAgents === 'no') {
+                if (regStatus.recommendation === 'DIR') {
+                    finalPgrType = 'DIR';
+                } else {
+                    finalPgrType = 'SIMPLIFIED';
+                }
+            } else {
+                finalPgrType = 'FULL';
+            }
 
             // Salvar dados do formulário
             const intakeData = {
@@ -184,7 +226,7 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
                 // Regulatory Data
                 pgr_type: finalPgrType,
                 nr1_verification: {
-                    eligible: isSimplifiedEligible,
+                    eligible: isLowRiskEligible,
                     has_agents: hasAgents,
                     risk_degree: regStatus?.grau_risco
                 }
@@ -197,7 +239,8 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
 
             // Gerar dados automaticamente
             const autoGenerated = generateCompleteData(companyData.cnpj, intakeData);
-            const autoResult = await updateAutoGenerated(companyData, autoGenerated);
+            // Pass 'intake_completed' to ensure we stay in the review step and don't skip to 'analysis_in_progress'
+            const autoResult = await updateAutoGenerated(companyData, autoGenerated, 'intake_completed');
 
             if (!autoResult.success) {
                 throw new Error(autoResult.error);
@@ -206,16 +249,24 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
             setLoading(false);
 
             // Mostrar mensagem de sucesso (Customizada por tipo)
-            const docTypeMsg = finalPgrType === 'SIMPLIFIED' ? 'Declaração de Inexistência de Risco (DIR)' : 'PGR e PCMSO Completos';
+            let docTypeMsg = 'PGR e PCMSO Completos';
+            if (finalPgrType === 'DIR') docTypeMsg = 'Declaração de Inexistência de Risco (DIR)';
+            if (finalPgrType === 'SIMPLIFIED') docTypeMsg = 'PGR Simplificado';
+
             alert(`✅ Dados recebidos com sucesso!\n\nCom base na análise NR-1, geraremos: ${docTypeMsg}.\n\nVocê receberá um email em breve.`);
 
             // Always use companyCNPJ prop (passed from App.jsx)
             const finalCNPJ = companyCNPJ || companyData?.cnpj || cnpj;
-            console.log('[ClientIntakeForm] Calling onComplete with CNPJ:', finalCNPJ);
-            console.log('[ClientIntakeForm] companyCNPJ prop:', companyCNPJ);
-            console.log('[ClientIntakeForm] companyData.cnpj:', companyData?.cnpj);
-            console.log('[ClientIntakeForm] cnpj state:', cnpj);
-            if (onComplete) onComplete(finalCNPJ, { workflow_status: 'analysis_in_progress' });
+
+            // Ensure we pass back the full company data (including name) to avoid blank screens
+            // Merging companyData with the new status
+            const updates = {
+                ...companyData,
+                workflow_status: 'intake_completed' // Correct status for Review Step
+            };
+
+            // Pass autoGenerated data so App.jsx can update state without a refetch
+            if (onComplete) onComplete(finalCNPJ, updates, autoGenerated);
         } catch (error) {
             setLoading(false);
             alert('❌ Erro ao salvar dados: ' + error.message);
@@ -274,30 +325,101 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
                         </button>
                     </div>
                     {companyData && (
-                        <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px' }}>
-                            <p style={{ color: '#15803d', fontWeight: 'bold' }}>✓ Empresa encontrada:</p>
-                            <p style={{ color: '#166534', fontWeight: 'bold', fontSize: '1.1rem' }}>{companyData.name}</p>
+                        <div style={{ marginTop: '1rem', padding: '1.5rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                            <p style={{ color: '#15803d', fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.5rem' }}>✓ Empresa encontrada:</p>
+                            <h3 style={{ color: '#166534', fontWeight: '900', fontSize: '1.4rem', margin: '0 0 1rem 0', borderBottom: '2px solid #86efac', paddingBottom: '0.5rem' }}>
+                                {companyData.name}
+                            </h3>
 
-                            <div style={{ marginTop: '0.8rem' }}>
-                                <p style={{ color: '#15803d', fontSize: '0.85rem', fontWeight: 'bold' }}>Atividade Principal:</p>
-                                <p style={{ color: '#166534', fontSize: '0.9rem' }}>{companyData.cnae} - {companyData.cnae_desc}</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div style={{ marginBottom: '0.8rem' }}>
+                                    <p style={{ color: '#15803d', fontSize: '0.8rem', fontWeight: 'bold', margin: 0 }}>Endereço:</p>
+                                    <p style={{ color: '#166534', fontSize: '0.9rem', margin: '2px 0' }}>{companyData.address}</p>
+                                </div>
+                                <div style={{ marginBottom: '0.8rem' }}>
+                                    <p style={{ color: '#15803d', fontSize: '0.8rem', fontWeight: 'bold', margin: 0 }}>Porte / Natureza:</p>
+                                    <p style={{ color: '#166534', fontSize: '0.9rem', margin: '2px 0' }}>{companyData.porte} - {companyData.natureza_juridica}</p>
+                                </div>
                             </div>
 
-                            {companyData.cnaes_secundarios && companyData.cnaes_secundarios.length > 0 && (
-                                <div style={{ marginTop: '0.8rem', borderTop: '1px dashed #86efac', paddingTop: '0.5rem' }}>
-                                    <p style={{ color: '#15803d', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                                        Atividades Secundárias ({companyData.cnaes_secundarios.length}):
-                                    </p>
-                                    <ul style={{ margin: '0.5rem 0 0 1.2rem', padding: 0, color: '#166534', fontSize: '0.85rem' }}>
-                                        {companyData.cnaes_secundarios.slice(0, 3).map((sec, idx) => (
-                                            <li key={idx} style={{ marginBottom: '4px' }}>{sec.codigo} - {sec.descricao}</li>
-                                        ))}
-                                        {companyData.cnaes_secundarios.length > 3 && (
-                                            <li style={{ fontStyle: 'italic', opacity: 0.8 }}>... e mais {companyData.cnaes_secundarios.length - 3} atividades.</li>
-                                        )}
-                                    </ul>
+                            <div style={{ marginTop: '0.8rem', padding: '10px', background: 'rgba(255,255,255,0.5)', borderRadius: '8px' }}>
+                                <p style={{ color: '#15803d', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '4px' }}>Atividades da Empresa:</p>
+                                <p style={{ color: '#166534', fontSize: '0.9rem', fontWeight: 'bold' }}>Principal: {companyData.cnae} - {companyData.cnae_desc}</p>
+                                {companyData.cnaes_secundarios && companyData.cnaes_secundarios.length > 0 && (
+                                    <div style={{ marginTop: '5px' }}>
+                                        <p style={{ color: '#15803d', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline' }}>Secundárias: </p>
+                                        <span style={{ color: '#166534', fontSize: '0.75rem' }}>
+                                            {companyData.cnaes_secundarios.map(c => c.descricao).join(', ').substring(0, 150)}...
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* REPRESENTATIVE DATA COLLECTION */}
+                            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '2px solid #86efac' }}>
+                                <h4 style={{ color: '#166534', margin: '0 0 1rem 0' }}>✍️ Quem assinará pela empresa?</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.85rem', color: '#15803d', fontWeight: 'bold' }}>Nome Completo</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nome do Diretor ou Responsável"
+                                            value={repName}
+                                            onChange={(e) => setRepName(e.target.value)}
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #86efac', marginTop: '4px' }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                        <div>
+                                            <label style={{ fontSize: '0.85rem', color: '#15803d', fontWeight: 'bold' }}>CPF</label>
+                                            <input
+                                                type="text"
+                                                placeholder="000.000.000-00"
+                                                value={repCPF}
+                                                onChange={(e) => setRepCPF(e.target.value)}
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #86efac', marginTop: '4px' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '0.85rem', color: '#15803d', fontWeight: 'bold' }}>Email de Assinatura</label>
+                                            <input
+                                                type="email"
+                                                placeholder="email@empresa.com.br"
+                                                value={repEmail}
+                                                onChange={(e) => setRepEmail(e.target.value)}
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #86efac', marginTop: '4px' }}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
+                            </div>
+
+                            <div style={{ marginTop: '2rem' }}>
+                                <button
+                                    onClick={handleConfirmCompany}
+                                    className="btn-primary"
+                                    disabled={loading}
+                                    style={{
+                                        width: '100%',
+                                        padding: '1.3rem',
+                                        fontSize: '1.2rem',
+                                        background: '#166534',
+                                        boxShadow: '0 4px 12px rgba(22, 101, 52, 0.3)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '10px',
+                                        transition: 'transform 0.2s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.01)'}
+                                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                >
+                                    {loading ? '🔐 REGISTRANDO...' : '✅ SIM, É ESTA MINHA EMPRESA'}
+                                </button>
+                                <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#15803d', marginTop: '10px', opacity: 0.8 }}>
+                                    Ao confirmar, os dados acima serão usados para gerar o PGR e PCMSO.
+                                </p>
+                            </div>
                         </div>
                     )}
 
@@ -321,46 +443,7 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
                                 {regStatus.description}
                             </p>
 
-                            {/* VERIFICAÇÃO DE EXPOSIÇÃO (Mandatory for Simplified) */}
-                            {regStatus.recommendation === 'PGR_SIMPLIFIED' && (
-                                <div style={{ marginTop: '0.8rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.8rem' }}>
-                                    <p style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#0f172a', marginBottom: '0.5rem' }}>
-                                        ⚠️ Verificação de Agentes (NR-1.8.4):
-                                    </p>
-                                    <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.8rem' }}>
-                                        Existem agentes físicos (ruído, calor), químicos ou biológicos no ambiente de trabalho?
-                                    </p>
-
-                                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
-                                        <div onClick={() => setHasAgents('no')}
-                                            style={{
-                                                padding: '8px 12px', borderRadius: '6px', border: hasAgents === 'no' ? '2px solid #166534' : '1px solid #cbd5e1',
-                                                background: hasAgents === 'no' ? '#dcfce7' : '#fff', cursor: 'pointer', flex: 1, textAlign: 'center'
-                                            }}>
-                                            <span style={{ fontSize: '0.9rem', color: hasAgents === 'no' ? '#166534' : '#64748b', fontWeight: hasAgents === 'no' ? 'bold' : 'normal' }}>Não (Manter Simplificado)</span>
-                                        </div>
-
-                                        <div onClick={() => setHasAgents('yes')}
-                                            style={{
-                                                padding: '8px 12px', borderRadius: '6px', border: hasAgents === 'yes' ? '2px solid #b91c1c' : '1px solid #cbd5e1',
-                                                background: hasAgents === 'yes' ? '#fee2e2' : '#fff', cursor: 'pointer', flex: 1, textAlign: 'center'
-                                            }}>
-                                            <span style={{ fontSize: '0.9rem', color: hasAgents === 'yes' ? '#b91c1c' : '#64748b', fontWeight: hasAgents === 'yes' ? 'bold' : 'normal' }}>Sim (Exige Completo)</span>
-                                        </div>
-                                    </div>
-
-                                    {hasAgents === 'yes' && (
-                                        <div style={{ fontSize: '0.8rem', color: '#b91c1c', background: '#fef2f2', padding: '8px', borderRadius: '4px', border: '1px dashed #fca5a5' }}>
-                                            🚨 <strong>Atenção:</strong> A presença de agentes nocivos exige a elaboração do PGR Completo, independente do porte ou grau de risco.
-                                        </div>
-                                    )}
-                                    {hasAgents === 'no' && (
-                                        <div style={{ fontSize: '0.8rem', color: '#166534', background: '#f0fdf4', padding: '8px', borderRadius: '4px', border: '1px dashed #86efac' }}>
-                                            ✅ <strong>Validado:</strong> A empresa está apta para a Declaração de Inexistência de Risco (DIR).
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            {/* VERIFICAÇÃO DE EXPOSIÇÃO moved to Step 5 */}
                         </div>
                     )}
                 </div>
@@ -546,6 +629,59 @@ const ClientIntakeForm = ({ companyCNPJ, onComplete }) => {
                             </div>
                         ))}
                     </div>
+
+
+                    {(regStatus?.recommendation === 'PGR_SIMPLIFIED' || regStatus?.recommendation === 'DIR') && (
+                        <div style={{ marginTop: '2rem', padding: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b', fontSize: '0.95rem' }}>
+                                📋 {regStatus.title}
+                            </h4>
+
+                            <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '1rem', lineHeight: '1.4' }}>
+                                {regStatus.description}
+                            </p>
+
+                            <p style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#0f172a', marginBottom: '0.5rem' }}>
+                                ⚠️ Verificação de Agentes (NR-1.8.4):
+                            </p>
+                            <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.8rem' }}>
+                                Existem agentes físicos (ruído, calor, vibração), químicos ou biológicos no ambiente de trabalho?
+                            </p>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
+                                <div onClick={() => setHasAgents('no')}
+                                    style={{
+                                        padding: '1rem', borderRadius: '6px', border: hasAgents === 'no' ? '2px solid #166534' : '1px solid #cbd5e1',
+                                        background: hasAgents === 'no' ? '#dcfce7' : '#fff', cursor: 'pointer', flex: 1, textAlign: 'center'
+                                    }}>
+                                    <span style={{ fontSize: '0.9rem', color: hasAgents === 'no' ? '#166534' : '#64748b', fontWeight: hasAgents === 'no' ? 'bold' : 'normal' }}>
+                                        Não ({regStatus.recommendation === 'DIR' ? 'Emitir DIR' : 'Manter Simplificado'})
+                                    </span>
+                                </div>
+
+                                <div onClick={() => setHasAgents('yes')}
+                                    style={{
+                                        padding: '1rem', borderRadius: '6px', border: hasAgents === 'yes' ? '2px solid #b91c1c' : '1px solid #cbd5e1',
+                                        background: hasAgents === 'yes' ? '#fee2e2' : '#fff', cursor: 'pointer', flex: 1, textAlign: 'center'
+                                    }}>
+                                    <span style={{ fontSize: '0.9rem', color: hasAgents === 'yes' ? '#b91c1c' : '#64748b', fontWeight: hasAgents === 'yes' ? 'bold' : 'normal' }}>
+                                        Sim (Exige PGR Completo)
+                                    </span>
+                                </div>
+                            </div>
+
+                            {hasAgents === 'yes' && (
+                                <div style={{ fontSize: '0.8rem', color: '#b91c1c', background: '#fef2f2', padding: '8px', borderRadius: '4px', border: '1px dashed #fca5a5' }}>
+                                    🚨 <strong>Atenção:</strong> A presença de agentes nocivos exige a elaboração do PGR Completo, independente do porte.
+                                </div>
+                            )}
+                            {hasAgents === 'no' && (
+                                <div style={{ fontSize: '0.8rem', color: '#166534', background: '#f0fdf4', padding: '8px', borderRadius: '4px', border: '1px dashed #86efac' }}>
+                                    ✅ <strong>Validado:</strong> A empresa está apta para {regStatus.recommendation === 'DIR' ? 'a Declaração de Inexistência de Risco (DIR)' : 'o PGR Simplificado'}.
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '10px' }}>
                         <button onClick={() => setStep(4)} className="btn-secondary">‹ Voltar</button>

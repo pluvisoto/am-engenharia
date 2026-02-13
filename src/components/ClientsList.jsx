@@ -49,7 +49,7 @@ const ClientsList = ({ onSelectClient, onNewClient, onEditClient }) => {
 
     const filtered = clients.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.cnpj.includes(searchTerm)
+        String(c.cnpj).includes(searchTerm)
     );
 
     return (
@@ -107,7 +107,16 @@ const ClientsList = ({ onSelectClient, onNewClient, onEditClient }) => {
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <span className={`badge badge-${client.grau_risco > 2 ? 'warning' : 'success'}`}>Risco {client.grau_risco || 1}</span>
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                    <span className={`badge badge-${client.grau_risco > 2 ? 'warning' : 'success'}`}>Risco {client.grau_risco || 1}</span>
+                                    {client.workflow_status === 'analysis_in_progress' && (
+                                        <span className="badge badge-warning" style={{ background: '#f59e0b', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <span>✓</span> Dados Revisados
+                                        </span>
+                                    )}
+                                    {client.workflow_status === 'approved' && <span className="badge badge-success" style={{ background: '#10b981', color: 'white' }}>Aprovado</span>}
+                                    {client.workflow_status === 'intake_completed' && <span className="badge" style={{ background: '#3b82f6', color: 'white' }}>Aguardando Cliente</span>}
+                                </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <button
                                         onClick={(e) => {

@@ -63,6 +63,77 @@ export const RISK_CATALOG = {
         exam_rules: {
             'HIGH': { periodicity: 'Anual' }
         }
+    },
+    // NEW ADDITIONS
+    VIBRATION_HAND: {
+        code: '02.02.004',
+        name: 'Vibração de Mãos e Braços (VMB)',
+        unit: 'm/s²',
+        limit_tolerance: 5,
+        action_level: 2.5,
+        technique: 'Acelerometria (NHO-10)',
+        exams: ['Raio-X de Punhos/Cotovelos', 'Avaliação Neurológica'],
+        exam_rules: {
+            'HIGH': { periodicity: 'Bienal' }
+        }
+    },
+    VIBRATION_BODY: {
+        code: '02.02.003',
+        name: 'Vibração de Corpo Inteiro (VCI)',
+        unit: 'm/s^1.75',
+        limit_tolerance: 21, // VDV
+        action_level: 9.1,
+        technique: 'Acelerometria (NHO-09)',
+        exams: ['Raio-X de Coluna Lombar'],
+        exam_rules: {
+            'HIGH': { periodicity: 'Bienal' }
+        }
+    },
+    DUST_MINERAL: {
+        code: '02.01.002', // Sílica genérica
+        name: 'Poeiras Minerais (Cimento/Calcário)',
+        unit: 'mg/m³',
+        limit_tolerance: 8, // Exemplo poeira total
+        action_level: 4,
+        technique: 'Gravimetria (NHO-08)',
+        exams: ['Espirometria', 'Raio-X de Tórax (OIT)'],
+        exam_rules: {
+            'HIGH': { periodicity: 'Bienal (RX) / Anual (Espiro)' }
+        }
+    },
+    FUMES_WELDING: {
+        code: '02.01.050',
+        name: 'Fumos Metálicos de Solda',
+        unit: 'mg/m³',
+        limit_tolerance: 5, // Ferro/Manganês varia
+        action_level: 2.5,
+        technique: 'Coleta em Membrana (NIOSH 7300)',
+        exams: ['Espirometria', 'Raio-X de Tórax', 'Dosagem de Manganês (Urina)', 'Acuidade Visual'],
+        exam_rules: {
+            'HIGH': { periodicity: 'Anual' }
+        }
+    },
+    BIOLOGICAL: {
+        code: '03.01.001',
+        name: 'Agentes Biológicos (Esgoto/Lixo/Saúde)',
+        unit: 'Qualitativo',
+        limit_tolerance: null,
+        technique: 'Inspeção Sanitária',
+        exams: ['Vacinação (Tétano/Hepatite B)', 'Hemograma Completo'],
+        exam_rules: {
+            'HIGH': { periodicity: 'Anual' }
+        }
+    },
+    RADIATION: {
+        code: '02.03.001',
+        name: 'Radiações Ionizantes (Raio-X)',
+        unit: 'mSv',
+        limit_tolerance: 20, // Dose anual
+        technique: 'Dosimetria Individual',
+        exams: ['Hemograma Completo', 'Contagem de Plaquetas'],
+        exam_rules: {
+            'HIGH': { periodicity: 'Semestral' }
+        }
     }
 };
 

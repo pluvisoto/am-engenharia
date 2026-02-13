@@ -9,16 +9,14 @@ export const exportToPDF = (elementId, filename = 'documento.pdf') => {
     }
 
     const opt = {
-        margin: [0, 0, 0, 0], // Let CSS control the margins for better precision
+        margin: 0,
         filename: filename,
-        image: { type: 'jpeg', quality: 1.0 },
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-            scale: 2, // Reduced from 3 to prevent canvas size limits
+            scale: 2,
             useCORS: true,
             letterRendering: true,
-            logging: true, // Enable logging for debugging
-            windowWidth: 1024, // Optimized width
-            scrollY: 0 // Force start from top
+            windowWidth: 1024
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
